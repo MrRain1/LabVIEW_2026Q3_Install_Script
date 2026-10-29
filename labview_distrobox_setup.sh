@@ -152,16 +152,16 @@ Categories=Development;Engineering;
 StartupNotify=true
 EOF
         chmod +x "$HOME/.local/share/applications/labview64.desktop"
-        echo "[*] Desktop entry creata in $HOME/.local/share/applications/labview64.desktop"
+        echo "[*] Desktop entry created in $HOME/.local/share/applications/labview64.desktop"
 
         # 6. Export app to the host system
         if command -v distrobox-export >/dev/null 2>&1; then
-            echo "[*] Esportazione lanciatore verso l'host via distrobox-export..."
+            echo "[*] Exporting launcher to host via distrobox-export..."
             distrobox-export --app labview64
         fi
     else
-        echo "[!] ATTENZIONE: Binario LabVIEW non ancora rilevato."
-        echo "    Installa i pacchetti .deb di LabVIEW nel container, poi rilancia lo script o esegui:"
+        echo "[!] WARNING: LabVIEW binary not found."
+        echo "    Install the .deb LabVIEW packages in the container and relaunch the script or execute:"
         echo "    distrobox-export --app labview64"
     fi
 
@@ -174,7 +174,7 @@ main(){
         exit 0
     fi
 
-    echo "Esecuzione rilevata su Host"
+    echo "Detected execution on host"
 
     # Verify dependencies
 
@@ -182,8 +182,8 @@ main(){
     #                 -> exit code != 0 (false) if not installed
 
 
-    if ! command -v podman > /dev/null 2>&1 && ! command -v docker > /dev/null 2>&1; then
-        echo "[-] Nessun container rilevato. Installa Podman o Docker."
+    if ! command -v docker > /dev/null 2>&1 && ! command -v podman > /dev/null 2>&1; then
+        echo "[-] No container virtualization tool detected. Install Podman o Docker."
         exit 1
     fi
 
