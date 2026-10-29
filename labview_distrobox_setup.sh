@@ -8,6 +8,10 @@ CONTAINER_HOME="LabVIEW_Ubuntu_2404_Home"
 
 
 setup_inside_container(){
+    local work_dir="${1:-$PWD}"
+    echo ""
+    echo "[*] Cartella di lavoro ricevuta nel container: $work_dir"
+    echo ""
     echo "[*] Starting configuration inside the container..."
 
     # Install base tools
@@ -36,18 +40,18 @@ setup_inside_container(){
         libfontconfig1 \
         libfreetype6 
     
-    # Check for labview community repository file in the home directory
-    if ! ls "$HOME"| grep -Ei "ni-labview-.+-community_.+.deb"; then
+    # Check for labview community repository file in the work directory directory
+    if ! ls "$work_dir"| grep -Ei "ni-labview-.+-community_.+.deb"; then
         echo "No LabVIEW community repository package file in the home directory."
-        echo "Download the zip file from the National Instruments website and extract the DEB package in the home directory of the container"
+        echo "Download the zip file from the National Instruments website and extract the DEB package in the work directory of the script"
         exit 1
     fi
 
-    NI_DEB_PACK=$(ls "$HOME" | grep -Ei "ni-labview-.+-community_.+.deb")
+    NI_DEB_PACK=$(ls "$work_dir" | grep -Ei "ni-labview-.+-community_.+.deb")
     echo $NI_DEB_PACK
     LABVIEW_PACKAGE="${NI_DEB_PACK%%_*}"
     echo $LABVIEW_PACKAGE
-    sudo apt install "$HOME/$NI_DEB_PACK" -y
+    sudo apt install "$work_dir/$NI_DEB_PACK" -y
     sudo apt update
     sudo apt install $LABVIEW_PACKAGE -y
 
@@ -60,19 +64,43 @@ setup_inside_container(){
 
     gpg -n -q --import --import-options import-show /etc/apt/keyrings/packages.mozilla.org.asc | awk '/pub/{getline; gsub(/^ +| +$/,""); if($0 == "35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3") print "\nThe key fingerprint matches ("$0").\n"; else print "\nVerification failed: the fingerprint ("$0") does not match the expected one.\n"}'
 
-    echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | sudo tee -a /etc/apt/sources.list.d/mozilla.list > /dev/null
+    echo 'Types: deb
+URIs: https://packages.mozilla.org/apt
+Suites: mozilla
+Components: main
+Signed-By: /etc/apt/keyrings/packages.mozilla.org.asc' | sudo tee /etc/apt/sources.list.d/mozilla.sources > /dev/null
 
     echo 'Package: *
-    Pin: origin packages.mozilla.org
-    Pin-Priority: 1000' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
+Pin: origin packages.mozilla.org
+Pin-Priority: 1000' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
 
-    echo 'Package: firefox
-    Pin: release o=Ubuntu
-    Pin-Priority: -1' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
+    #echo 'Package: firefox
+    #Pin: release o=Ubuntu
+    #Pin-Priority: -1' | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
 
     sudo apt purge -y firefox snapd 2>/dev/null || true
     sudo apt update
-    sudo apt install firefox
+    sudo apt install firefox -y
+
+    # Set Firefox as te default browser
+    mkdir -p ~/.config
+    cat << 'EOF' > "$HOME/.config/mimeapps.list"
+[Default Applications]
+text/html=firefox.desktop
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+x-scheme-handler/about=firefox.desktop
+x-scheme-handler/unknown=firefox.desktop
+
+[Added Associations]
+text/html=firefox.desktop;
+x-scheme-handler/http=firefox.desktop;
+x-scheme-handler/https=firefox.desktop;    
+EOF
+
+    xdg-mime default firefox.desktop x-scheme-handler/http
+    xdg-mime default firefox.desktop x-scheme-handler/https
+    xdg-mime default firefox.desktop text/html
 
     # Create wrapper xdg-open in ~/.local/bin
     echo "[*]Configure xdg-open wrapper..."
@@ -173,10 +201,11 @@ main(){
         echo "[*] Container $CONTAINER_NAME already exists"
     fi
 
+    SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
     # Execute script inside the container
     echo "[*] Accessing the container and executing provisioning..."
-    distrobox enter "$CONTAINER_NAME" -- bash -c "$(declare -f setup_inside_container); setup_inside_container"
-
+    distrobox enter "$CONTAINER_NAME" -- bash -c "$(declare -f setup_inside_container); setup_inside_container \"\$1\"" _ "$SCRIPT_DIR"
     echo ""
     echo "[OK] Setup completed!"
     echo "To enter the container execute:"
