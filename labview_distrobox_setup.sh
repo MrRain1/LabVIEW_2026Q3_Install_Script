@@ -165,7 +165,7 @@ EOF
         echo "    distrobox-export --app labview64"
     fi
 
-    echo "[OK] Configurazione interna completata con successo."
+    echo "[OK] Configuration completed successfully."
 }
 
 main(){
