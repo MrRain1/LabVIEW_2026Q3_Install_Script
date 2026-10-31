@@ -10,7 +10,7 @@ CONTAINER_HOME="LabVIEW_Ubuntu_2404_Home"
 setup_inside_container(){
     local work_dir="${1:-$PWD}"
     echo ""
-    echo "[*] Cartella di lavoro ricevuta nel container: $work_dir"
+    echo "[*] Working directory received: $work_dir"
     echo ""
     echo "[*] Starting configuration inside the container..."
 
